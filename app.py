@@ -33,6 +33,18 @@ def post_form():
         # Handle the case where "url" key is not present in the request.json
         return jsonify(error=str(e))
 
+@app.route("/post_ext", methods =["POST"])
+def post_ext():
+    result = []
+    corrected_url = ""
+    try:
+        url = request.json["url"]
+        corrected_url, result = correct_and_autocomplete_url(url)
+        return jsonify(result=result, corrected_url=corrected_url)
+
+    except KeyError as e:
+        # Handle the case where "url" key is not present in the request.json
+        return jsonify(error=str(e))
 
 if __name__ == "__main__":
     app.run(debug=True)
