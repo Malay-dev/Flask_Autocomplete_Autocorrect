@@ -52,11 +52,8 @@ def preprocess_url(url):
     return url
 
 def correct_and_autocomplete_url(input_url, dataset=set_data()):
-    print("Input URL:", input_url)
     # Preprocess input URL
     input_url = preprocess_url(input_url)
-
-    print("Preprocessed URL:", input_url)
 
     # Set thresholds for similarity scores
     threshold_levenshtein = 80
@@ -71,9 +68,6 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     best_match_levenshtein = max(dataset, key=lambda url: fuzz.ratio(input_url, url))
     similarity_levenshtein = fuzz.ratio(input_url, best_match_levenshtein)
 
-    print("Best Match Levenshtein:", best_match_levenshtein)
-    print("Levenshtein Similarity Score:", similarity_levenshtein)
-
     # Cosine similarity for autocorrection
     ngram_range = (2, 3)  # Set n-gram range (bi-grams and tri-grams)
     vectorizer = CountVectorizer(ngram_range=ngram_range).fit_transform([input_url] + dataset)
@@ -81,8 +75,6 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     best_match_cosine = dataset[cosine_similarities.argmax()]
     similarity_cosine = cosine_similarities.max()
 
-    print("Best Match Cosine:", best_match_cosine)
-    print("Cosine Similarity Score:", similarity_cosine)
 
     # If the Levenshtein similarity score is above the autocorrect threshold, consider it a match
     if similarity_levenshtein >= threshold_levenshtein:
@@ -104,9 +96,6 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     # Search for autocomplete results using trie
     autocomplete_results = autocomplete_trie.search_autocomplete(input_url)
 
-    print("Corrected URL (Levenshtein):", corrected_url_levenshtein)
-    print("Corrected URL (Cosine):", corrected_url_cosine)
-    print("Autocomplete Results:", autocomplete_results)
 
     # Combine autocorrect results based on both Levenshtein and Cosine
     corrected_url_combined = corrected_url_levenshtein if similarity_levenshtein >= similarity_cosine else corrected_url_cosine
