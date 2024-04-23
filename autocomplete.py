@@ -8,18 +8,20 @@ class TrieNode:
     def __init__(self):
         self.children = {}
         self.is_end_of_word = False
+        self.data = None  # Store complete data in each node
 
 class Trie:
     def __init__(self):
         self.root = TrieNode()
 
-    def insert(self, word):
+    def insert(self, word, data):
         node = self.root
         for char in word:
             if char not in node.children:
                 node.children[char] = TrieNode()
             node = node.children[char]
         node.is_end_of_word = True
+        node.data = data  # Store complete data in the end node of each word
 
     def search_autocomplete(self, prefix):
         node = self.root
@@ -32,7 +34,7 @@ class Trie:
     def _get_words_with_prefix(self, node, current_prefix):
         results = []
         if node.is_end_of_word:
-            results.append(current_prefix)
+            results.append(node.data)  # Include complete data when a word ends
 
         for char, child_node in node.children.items():
             results.extend(self._get_words_with_prefix(
@@ -40,71 +42,57 @@ class Trie:
         return results
 
 def set_data():
-    csv_filename = "data_new.csv"
+    csv_filename = "output_data_new.csv"
     df = pd.read_csv(csv_filename)
-    url_dataset = df["url"]
+    url_dataset =  list(zip(df["metadata_global_index"], df["domain"], df["url"]))
     return url_dataset
 
-def preprocess_url(url):
-    # Modify the preprocessing to retain dots and slashes
+def preprocess_input(url):
     url = re.sub(r"[^\w\s./]", "", url)
     url = url.strip()
     return url
 
 def correct_and_autocomplete_url(input_url, dataset=set_data()):
-    # Preprocess input URL
-    input_url = preprocess_url(input_url)
+    input_url = preprocess_input(input_url)
 
     # Set thresholds for similarity scores
-    threshold_levenshtein = 80
-    threshold_cosine = 0.8
-    threshold_autocomplete = 0.5
+    threshold_levenshtein =50
+    threshold_cosine = 0.1
+    threshold_autocomplete = 0.2
+    
+   
+    best_match_levenshtein = max(dataset, key=lambda url: fuzz.ratio(input_url, url[1]))
+    similarity_levenshtein = fuzz.ratio(input_url, best_match_levenshtein[1])
 
-    # Add "https://" only if not present in the input URL
-    if not input_url.startswith("https://"):
-        input_url = "https://" + input_url
-
-    # Levenshtein distance for autocorrection
-    best_match_levenshtein = max(dataset, key=lambda url: fuzz.ratio(input_url, url))
-    similarity_levenshtein = fuzz.ratio(input_url, best_match_levenshtein)
-
-    # Cosine similarity for autocorrection
-    ngram_range = (2, 3)  # Set n-gram range (bi-grams and tri-grams)
-    vectorizer = CountVectorizer(ngram_range=ngram_range).fit_transform([input_url] + dataset)
+    ngram_range = (2, 5)  # Set n-gram range (bi-grams and tri-grams)
+    vectorizer = CountVectorizer(ngram_range=ngram_range).fit_transform([input_url] + [data[1] for data in dataset])
     cosine_similarities = cosine_similarity(vectorizer, vectorizer)[0][1:]
-    best_match_cosine = dataset[cosine_similarities.argmax()]
+    best_match_cosine = dataset[1][cosine_similarities.argmax()]
     similarity_cosine = cosine_similarities.max()
 
 
-    # If the Levenshtein similarity score is above the autocorrect threshold, consider it a match
     if similarity_levenshtein >= threshold_levenshtein:
         corrected_url_levenshtein = best_match_levenshtein
     else:
         corrected_url_levenshtein = input_url
 
-    # If the Cosine similarity score is above the autocorrect threshold, consider it a match
     if similarity_cosine >= threshold_cosine:
         corrected_url_cosine = best_match_cosine
     else:
         corrected_url_cosine = input_url
 
-    # Trie for autocomplete
     autocomplete_trie = Trie()
-    for url in dataset:
-        autocomplete_trie.insert(url)
+    for data in dataset:
+        url = data[1]
+        autocomplete_trie.insert(url, data)
 
-    # Search for autocomplete results using trie
     autocomplete_results = autocomplete_trie.search_autocomplete(input_url)
 
 
-    # Combine autocorrect results based on both Levenshtein and Cosine
     corrected_url_combined = corrected_url_levenshtein if similarity_levenshtein >= similarity_cosine else corrected_url_cosine
+    autocomplete_results = autocomplete_results + [corrected_url_combined]
+    autocomplete_results = [result for result in autocomplete_results if result]
+    sorted_data = sorted(autocomplete_results, key=lambda x: x[0])
+    sorted_data = autocomplete_results
+    return corrected_url_combined, sorted_data
 
-    return corrected_url_combined, autocomplete_results
-
-# Load the dataset
-
-# # Correct and autocomplete URL
-# corrected_url, autocomplete_results = correct_and_autocomplete_url("www.goog", url_dataset)
-# print("Corrected URL:", corrected_url)
-# print("Autocomplete Results:", autocomplete_results)
