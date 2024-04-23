@@ -56,10 +56,9 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     input_url = preprocess_input(input_url)
 
     # Set thresholds for similarity scores
-    threshold_levenshtein =50
+    threshold_levenshtein = 50
     threshold_cosine = 0.1
     threshold_autocomplete = 0.2
-    
    
     best_match_levenshtein = max(dataset, key=lambda url: fuzz.ratio(input_url, url[1]))
     similarity_levenshtein = fuzz.ratio(input_url, best_match_levenshtein[1])
@@ -69,7 +68,6 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     cosine_similarities = cosine_similarity(vectorizer, vectorizer)[0][1:]
     best_match_cosine = dataset[1][cosine_similarities.argmax()]
     similarity_cosine = cosine_similarities.max()
-
 
     if similarity_levenshtein >= threshold_levenshtein:
         corrected_url_levenshtein = best_match_levenshtein
@@ -95,4 +93,3 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     sorted_data = sorted(autocomplete_results, key=lambda x: x[0])
     sorted_data = autocomplete_results
     return corrected_url_combined, sorted_data
-
