@@ -42,7 +42,7 @@ class Trie:
         return results
 
 def set_data():
-    csv_filename = "output_data_new.csv"
+    csv_filename = "data.csv"
     df = pd.read_csv(csv_filename)
     url_dataset =  list(zip(df["metadata_global_index"], df["domain"], df["url"]))
     return url_dataset
