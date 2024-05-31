@@ -63,44 +63,31 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     input_url = preprocess_input(input_url)
 
     # Set thresholds for similarity scores
-    threshold_levenshtein = 50
-    threshold_cosine = 0.1
+    threshold_levenshtein = 50 - len(input_url)
+    threshold_cosine = 0.1 + (len(input_url) * 0.01)
     threshold_autocomplete = 0.2
    
     best_match_levenshtein = max(dataset, key=lambda url: fuzz.ratio(input_url, url[1]))
     similarity_levenshtein = fuzz.ratio(input_url, best_match_levenshtein[1])
-
-    ngram_range = (2, 10)  # Set n-gram range (bi-grams and tri-grams)
-    vectorizer = CountVectorizer(ngram_range=ngram_range).fit_transform([input_url] + [data[1] for data in dataset])
-    cosine_similarities = cosine_similarity(vectorizer, vectorizer)[0][1:]
-    best_match_cosine = dataset[1][cosine_similarities.argmax()]
-    similarity_cosine = cosine_similarities.max()
 
     if similarity_levenshtein >= threshold_levenshtein:
         corrected_url_levenshtein = best_match_levenshtein
     else:
         corrected_url_levenshtein = input_url
 
-    if similarity_cosine >= threshold_cosine:
-        corrected_url_cosine = best_match_cosine
-    else:
-        corrected_url_cosine = input_url
-
     autocomplete_trie = Trie()
     for data in dataset:
         url = data[1]
         autocomplete_trie.insert(url, data)
 
-    autocomplete_results = autocomplete_trie.search_autocomplete(corrected_url_cosine)
-
-
-    corrected_url_combined = corrected_url_levenshtein if similarity_levenshtein >= similarity_cosine else corrected_url_cosine
+    autocomplete_results = autocomplete_trie.search_autocomplete(corrected_url_levenshtein[1])
+    
+    corrected_url_combined = corrected_url_levenshtein  
     autocomplete_results = autocomplete_results + [corrected_url_combined]
     autocomplete_results = [list(result) for result in autocomplete_results if result]
     for i in autocomplete_results:
         if i[1] in user_history:
             i[0] = 0
     
-    sorted_data = sorted(autocomplete_results, key=lambda x: x[0])   
-    print(sorted_data)
+    sorted_data = sorted(autocomplete_results, key=lambda x: x[0])       
     return corrected_url_combined, sorted_data
