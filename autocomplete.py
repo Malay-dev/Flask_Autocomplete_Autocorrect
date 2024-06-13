@@ -61,7 +61,8 @@ def set_history(history):
 
 def correct_and_autocomplete_url(input_url, dataset=set_data()):
     input_url = preprocess_input(input_url)
-
+    if(input_url == ""):
+        return "" , []
     # Set thresholds for similarity scores
     threshold_levenshtein = 50 - len(input_url)
     threshold_cosine = 0.1 + (len(input_url) * 0.01)
@@ -79,7 +80,7 @@ def correct_and_autocomplete_url(input_url, dataset=set_data()):
     for data in dataset:
         url = data[1]
         autocomplete_trie.insert(url, data)
-
+    
     autocomplete_results = autocomplete_trie.search_autocomplete(corrected_url_levenshtein[1])
     
     corrected_url_combined = corrected_url_levenshtein  
