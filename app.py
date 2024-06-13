@@ -20,6 +20,9 @@ def url_form():
     corrected_url = ""
     return render_template('index.html', form=form, result=result, corrected_url=corrected_url)
 
+@app.route("/charts",  methods=['GET', 'POST', 'OPTIONS'])
+def charts():
+    return render_template('charts.html')
 
 @app.route("/post_form", methods=["POST"])
 def post_form():
