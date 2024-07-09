@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from forms import UrlForm
-from autocomplete import correct_and_autocomplete_url, set_history
+from autocomplete import correct_and_autocomplete_url, set_history, set_data
 from refresh_dataset import retrieve_data
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'test'
@@ -26,7 +26,7 @@ def charts():
 
 @app.route("/post_form", methods=["POST"])
 def post_form():
-    result = []
+    result = []   
     corrected_url = ""
     try:
         url = request.json["url"]
@@ -63,6 +63,7 @@ def post_history():
 def refresh_dataset():
     try:
         retrieve_data()
+        set_data()
         return jsonify(result="Dataset refreshed successfully")
     except KeyError as e:
         return jsonify(error=str(e))
