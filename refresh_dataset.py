@@ -45,8 +45,11 @@ def retrieve_data():
         'metadata_local_index',
         'metadata_category_rank.rank',
         'metadata_category_rank.category',
+        'metadata_category'
     ]
     df = json_normalize(list(cursor), sep='_').filter(items=fields_to_include)
+    df = df[df['metadata_category'] != 'adult']
+    df = df[df['metadata_category'] != '']
     df = df.dropna(subset=['metadata_global_index'])
     df['url_domain_name'] = df['url_domain_name'].apply(set_default_subdomain)
     df[['subdomain', 'domain', 'suffix']] = df['url_domain_name'].apply(lambda x: pd.Series(extract_info(x)))
