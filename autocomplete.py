@@ -1,4 +1,4 @@
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
@@ -8,8 +8,7 @@ class TrieNode:
     def __init__(self):
         self.children = {}
         self.is_end_of_word = False
-        self.data = None  # Store complete data in each node
-
+        self.data = None   
 class Trie:
     def __init__(self):
         self.root = TrieNode()
@@ -21,7 +20,7 @@ class Trie:
                 node.children[char] = TrieNode()
             node = node.children[char]
         node.is_end_of_word = True
-        node.data = data  # Store complete data in the end node of each word
+        node.data = data   
 
     def search_autocomplete(self, prefix):
         node = self.root
@@ -34,7 +33,7 @@ class Trie:
     def _get_words_with_prefix(self, node, current_prefix):
         results = []
         if node.is_end_of_word:
-            results.append(node.data)  # Include complete data when a word ends
+            results.append(node.data)   
 
         for char, child_node in node.children.items():
             results.extend(self._get_words_with_prefix(
@@ -44,7 +43,10 @@ class Trie:
 def set_data():
     csv_filename = "data.csv"
     df = pd.read_csv(csv_filename)
-    url_dataset =  list(zip(df["metadata_global_index"], df["domain"], df["url"]))
+    url_dataset = [
+        {"metadata_global_index": row["metadata_global_index"], "domain": row["domain"], "url": row["url"]}
+        for _, row in df.iterrows() if row["metadata_global_index"] != 0
+    ]
     return url_dataset
 
 def preprocess_input(url):
@@ -61,34 +63,39 @@ def set_history(history):
 
 def correct_and_autocomplete_url(input_url, dataset=set_data()):
     input_url = preprocess_input(input_url)
-    if(input_url == ""):
-        return "" , []
-    # Set thresholds for similarity scores
-    threshold_levenshtein = 50 - len(input_url)
-    threshold_cosine = 0.1 + (len(input_url) * 0.01)
-    threshold_autocomplete = 0.2
-   
-    best_match_levenshtein = max(dataset, key=lambda url: fuzz.ratio(input_url, url[1]))
-    similarity_levenshtein = fuzz.ratio(input_url, best_match_levenshtein[1])
-
-    if similarity_levenshtein >= threshold_levenshtein:
-        corrected_url_levenshtein = best_match_levenshtein
-    else:
-        corrected_url_levenshtein = input_url
-
+    if input_url == "":
+        return "", []
+    
+    threshold_levenshtein = 10 + len(input_url) * 10
+    
+    similarity_scores = [
+        {"data": url_data, "score": fuzz.ratio(input_url, url_data["domain"])}
+        for url_data in dataset
+    ]
+    filtered_results = [
+        {"data": result["data"], "score": result["score"] / result["data"]["metadata_global_index"]}
+        for result in similarity_scores if result["score"] >= threshold_levenshtein and result["data"]["metadata_global_index"] != 0
+    ]
+    
+    if not filtered_results:
+        return "", []
+    
+    corrected_url_levenshtein = max(filtered_results, key=lambda x: x["score"])
+    
     autocomplete_trie = Trie()
     for data in dataset:
-        url = data[1]
+        url = data["domain"]
         autocomplete_trie.insert(url, data)
     
-    autocomplete_results = autocomplete_trie.search_autocomplete(corrected_url_levenshtein[1])
+    autocomplete_results = autocomplete_trie.search_autocomplete(input_url)
     
-    corrected_url_combined = corrected_url_levenshtein  
+    corrected_url_combined = corrected_url_levenshtein["data"]
     autocomplete_results = autocomplete_results + [corrected_url_combined]
-    autocomplete_results = [list(result) for result in autocomplete_results if result]
-    for i in autocomplete_results:
-        if i[1] in user_history:
-            i[0] = 0
     
-    sorted_data = sorted(autocomplete_results, key=lambda x: x[0])       
+    for result in autocomplete_results:
+        if result["domain"] in user_history:
+            result["metadata_global_index"] = 0
+    
+    sorted_data = sorted(autocomplete_results, key=lambda x: x["metadata_global_index"])
+    
     return corrected_url_combined, sorted_data
