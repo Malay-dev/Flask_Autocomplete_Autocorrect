@@ -57,8 +57,17 @@ def retrieve_data():
     df = replace_nan_for_column(df, "metadata_location", "IN")
     df = combine_columns_to_new_url_column(df, "url_protocol", "url_domain_name", "url")
 
+    # Sorting the dataframe by metadata_global_index
+    df = df.sort_values(by='metadata_global_index')
+
+    # Creating a new column 'index' numbered from 1 to end
+    df = df.assign(index=range(1, len(df) + 1))
+
     csv_filename = "data.csv"
-    df.to_csv(csv_filename)
+    df.to_csv(csv_filename, index=False)
     client.close()
 
     print(f"Data exported to {csv_filename}")
+
+# Call the retrieve_data function to execute the process
+retrieve_data()
