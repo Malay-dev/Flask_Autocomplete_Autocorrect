@@ -89,7 +89,7 @@
     </p>
   </form>
   <div class="corrected_url">
-    <pre id="corrected_url">{{ corrected_url | tojson(indent=2) }}</pre>
+    <pre id="corrected_url"></pre>
   </div>
   <div class="result">
     <pre id="result"></pre>
@@ -113,7 +113,11 @@
 
       // Parse the JSON response
       const data = await response.json();
-      document.getElementById("corrected_url").innerHTML = data.corrected_url;
+      document.getElementById("corrected_url").innerHTML = JSON.stringify(
+        data.corrected_url,
+        null,
+        2
+      );
       document.getElementById("result").innerHTML = JSON.stringify(
         data.result,
         null,
