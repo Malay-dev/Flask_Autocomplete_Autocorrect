@@ -1,6 +1,7 @@
 from thefuzz import fuzz
 import pandas as pd
 import re
+from functools import lru_cache
 
 class TrieNode:
     def __init__(self):
@@ -34,7 +35,9 @@ class Trie:
         for char, child_node in node.children.items():
             results.extend(self._get_words_with_prefix(child_node, current_prefix + char))
         return results
+    
 
+@lru_cache(maxsize=1000)
 def load_dataset(csv_filename="data.csv"):
     df = pd.read_csv(csv_filename)
     return [
@@ -58,6 +61,8 @@ def set_history(history):
     print(user_history[:100])
     return user_history
 
+
+@lru_cache(maxsize=1000)
 def calculate_score(fuzz_score, fit_rank, weight_fuzz=0.02, weight_index=0.9):
     """
     Calculate the score based on fuzzy matching and ranking.
